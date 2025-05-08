@@ -12,8 +12,9 @@ st.set_page_config(
 
 @st.cache_data
 def get_data():
-    url=r"C:\Users\ORACLE 1\Documents\FINAL PROJECT\nakuru_tourist_attractions.csv"
-    geo_url=r"C:\Users\ORACLE 1\Documents\FINAL PROJECT\KENYAcounties.geojson"
+    url = "https://raw.githubusercontent.com/nangami29/FinalYear-project/main/nakuru_tourist_attractions.csv"
+    geo_url = "https://raw.githubusercontent.com/nangami29/FinalYear-project/main/KENYAcounties.geojson"
+
     try:
         df=pd.read_csv(url, encoding='ISO-8859-1')
         gdf=gpd.read_file(geo_url)
@@ -23,7 +24,18 @@ def get_data():
         return None, None
     
 data, geodata=get_data()
+required_columns = ['Attraction', 'Latitude', 'Longitude', 'Description']
+missing_cols = [col for col in required_columns if col not in data.columns]
 
+if missing_cols:
+    st.error(f"The data is missing expected columns: {missing_cols}")
+    st.stop()
+
+
+if data is None or geodata is None:
+    st.error("Data is missing or could not be loaded.")
+    st.stop()
+    
 attraction_to_county = {
     "Lake Nakuru National Park": "Nakuru",
     "Menengai Crater": "Nakuru",
@@ -33,15 +45,15 @@ attraction_to_county = {
 }
 
 def get_centre_boundary(attraction_name):
-    for index, row in data.iterrows():
-        attraction_name = row["Attraction"]
     county_name = attraction_to_county.get(attraction_name)
     if not county_name:
         return None
-    county_bounds=geodata[geodata['NAME_1'] == centre]
+    county_bounds = geodata[geodata['NAME_1'] == county_name]
     if county_bounds.empty:
-        st.stop()
+        st.warning(f"No boundary data found for {county_name}")
+        return None
     return county_bounds
+
 
 #st.write(data.columns)
 #st.write("Available GeoJSON names:", geodata['NAME_1'].unique())
@@ -51,9 +63,10 @@ st.title("NAkuru County Tourism sector")
 st.write(" Select a centre to view its geographical information and description")
 
 # tourist centre attractions selection
-centre= st.selectbox(label="Select Centre", options=list(data['Attraction']
-.unique()), key="selected_centre")
-
+print(f"Value of data: {data}")
+if data is not None:
+    print(f"Columns in data: {data.columns}")
+centre= st.selectbox(label="Select Centre", options=list(data['Attraction'].unique()), key="selected_centre")
 #selected_centre=get_centre_boundary(centre=centre)
 
 if centre:
@@ -100,7 +113,7 @@ if centre:
                 <p><b>Nearby Hotels:</b> {centre_data.get('Nearby_Hotels_Lodges')}</p>
                 <p><b>Entrance Fee (Citizens):</b> Ksh {centre_data.get('Entrace_fee(citizens)Kshs')}</p>
                 <p><b>Entrance Fee (Residents):</b> Ksh {centre_data.get('Residents', 'N/A')}</p>
-                <p><b>Entrance Fee(Non-Residents):<b>USD {centre_data.get('Non_Residents(USD)')}</p>
+                <p><b>Entrance Fee(Non-Residents):</b>USD {centre_data.get('Non_Residents(USD)')}</p>
                 """
 
                 # Create popup
